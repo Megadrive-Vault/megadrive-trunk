@@ -1,0 +1,10 @@
+out/
+*.o
+video/
+sme/lib/
+scripts/
+*.vcproj.*.*.user
+compiler/tmp/
+compiler/bin/
+project/data/
+project/res/
