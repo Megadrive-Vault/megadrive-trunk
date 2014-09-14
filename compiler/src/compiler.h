@@ -1,0 +1,14 @@
+#ifndef __COMPILER_H__
+#define __COMPILER_H__
+
+#include "stdio.h"
+#include "windows.h"
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <sstream>
+
+using namespace std;
+
+#endif
