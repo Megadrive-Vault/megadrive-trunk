@@ -180,14 +180,12 @@ int main(u16 hard)
         if (value&BUTTON_DOWN) ++move_y;
         if (value&BUTTON_LEFT) --move_x;
         if (value&BUTTON_RIGHT) ++move_x;
-        position_x += move_x*2;
-        position_y += move_y*2;
+        position_x += move_x*3;
+        position_y += move_y*3;
         
         int place_x = position_x/8;
         int place_y = position_y/8;
     
-        VDP_waitVSync();
-        
         if (place_x>old_place_x)
             update(place_x+SCREEN_WIDTH-1, place_y, 1, SCREEN_HEIGHT);
         else if (place_x<old_place_x)
@@ -197,6 +195,8 @@ int main(u16 hard)
             update(place_x, place_y+SCREEN_HEIGHT-1, SCREEN_WIDTH, 1);
         else if (place_y<old_place_y)
             update(place_x, place_y, SCREEN_WIDTH, 1);
+        
+        VDP_waitVSync();
         
         VDP_setHorizontalScroll(PLAN_A, -position_x-BORDER*8);
         VDP_setHorizontalScroll(PLAN_B, -position_x-BORDER*8);
