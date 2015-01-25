@@ -191,16 +191,19 @@ void compile_map(string root_path, string map_path)
     string map_name = map_path.substr(0, map_path.size()-4);
     printf("compiling map %s...\n", map_name.c_str());
 
-    fprintf(data_file_h, "    extern const int %s[];\n", map_name.c_str());
-    fprintf(data_file_c, "const int %s[] = {", map_name.c_str());
-        
-    std::ifstream input((root_path+map_path).c_str());
-    std::string line;
-    while (std::getline(input, line))
+    fprintf(data_file_h, "    extern const u16 %s[];\n", map_name.c_str());
+    fprintf(data_file_c, "const u16 %s[] = {", map_name.c_str());
+    
+    FILE* map = fopen((root_path+map_path).c_str(), "rt");
+    int tile_index;
+    while (feof(map)==0 && fscanf(map, "%d", &tile_index))
     {
-        fprintf(data_file_c, "%s,\n", line.c_str());
+        tile_index = tile_index==-1?0:tile_index+0x10;
+        fprintf(data_file_c, "%d,\n", tile_index);
+        fgetc(map);
     }
-    fprintf(data_file_c, "-1};\n\n");
+    fclose(map);
+    fprintf(data_file_c, "0};\n\n");
 }
 
 int main(int argc, char* argv[])

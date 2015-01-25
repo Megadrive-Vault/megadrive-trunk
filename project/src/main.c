@@ -8,7 +8,7 @@
 
 #include "data.h"
 
-#define MOD(a, b)  (a % b + b) % b
+#define MOD(a, b)  ((a) % (b) + (b)) % (b)
 
 int VIEWPORT_WIDTH;
 int VIEWPORT_HEIGHT;
@@ -123,10 +123,10 @@ float camera_position_y = 0.0f;
 
 void vblank()
 {
-    VDP_setHorizontalScroll(PLAN_A, -(int)camera_position_x-VIEWPORT_BORDER*8);
-    VDP_setHorizontalScroll(PLAN_B, -(int)camera_position_x-VIEWPORT_BORDER*8);
-    VDP_setVerticalScroll(PLAN_A, (int)camera_position_y+VIEWPORT_BORDER*8);
-    VDP_setVerticalScroll(PLAN_B, (int)camera_position_y+VIEWPORT_BORDER*8);      
+    VDP_setHorizontalScroll(PLAN_A, -(int)(camera_position_x-screenWidth/2));
+    VDP_setHorizontalScroll(PLAN_B, -(int)(camera_position_x-screenWidth/2));
+    VDP_setVerticalScroll(PLAN_A, (int)(camera_position_y-screenHeight/2));
+    VDP_setVerticalScroll(PLAN_B, (int)(camera_position_y-screenHeight/2));      
 }
 
 float cos(float a)
@@ -148,13 +148,13 @@ int main(u16 hard)
     sme_Init(hard);
     SND_startPlay_PCM(music, sizeof(music), SOUND_RATE_16000, SOUND_PAN_CENTER, 1);    
     
-    VIEWPORT_BORDER = 2;
+    VIEWPORT_BORDER = 1;
     VIEWPORT_WIDTH = screenWidth/8+VIEWPORT_BORDER*2;
     VIEWPORT_HEIGHT = screenHeight/8+VIEWPORT_BORDER*2;
     PLAN_WIDTH = VDP_getPlanWidth();
     PLAN_HEIGHT = VDP_getPlanHeight();
-    MAP_WIDTH = 100;
-    MAP_HEIGHT = 100;
+    MAP_WIDTH = 252;
+    MAP_HEIGHT = 252;
     
     SPR_init(256);
     SPR_initSprite(&sprites[0], &camion, 0, 0, TILE_ATTR(PAL2, TRUE, FALSE, FALSE));
@@ -166,26 +166,19 @@ int main(u16 hard)
     Plan_a.compression = 0;
     Plan_a.w = MAP_WIDTH;
     Plan_a.h = MAP_HEIGHT;
-    Plan_a.tilemap = (u16*)MEM_alloc(MAP_WIDTH*MAP_HEIGHT*sizeof(u16));
+    Plan_a.tilemap = map_plan_a;
     
     Plan_b.compression = 0;
     Plan_b.w = MAP_WIDTH;
     Plan_b.h = MAP_HEIGHT;
-    Plan_b.tilemap = (u16*)MEM_alloc(MAP_WIDTH*MAP_HEIGHT*sizeof(u16));
-    
-    int i;
-    for (i=0 ; i<MAP_WIDTH*MAP_HEIGHT ; ++i)
-    {
-        Plan_a.tilemap[i] = map_plan_a[i]==-1?0:TILE_USERINDEX+map_plan_a[i];
-        Plan_b.tilemap[i] = map_plan_b[i]==-1?0:TILE_USERINDEX+map_plan_b[i];
-    }
+    Plan_b.tilemap = map_plan_b;
     
     VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_PLANE);
     
-    camera_position_x = position_x-screenWidth/2.0f;
-    camera_position_y = position_y-screenHeight/2.0f;
+    camera_position_x = position_x;
+    camera_position_y = position_y;
     
-    update((int)(camera_position_x/8), (int)(camera_position_y/8), VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+    update((int)(camera_position_x/8-screenWidth/16-VIEWPORT_BORDER), (int)(camera_position_y/8-screenHeight/16-VIEWPORT_BORDER), VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
     
     SYS_setVIntCallback(vblank);
     
@@ -197,15 +190,22 @@ int main(u16 hard)
         if (roll<-PI) roll += 2.0f*PI;
         if (roll>PI) roll -= 2.0f*PI;
         float speed = 0.0f;
-        if (value&BUTTON_UP) speed += 2.0f;
-        if (value&BUTTON_DOWN) speed -= 2.0f;     
+        if (value&BUTTON_UP) speed += 1.5f;
+        if (value&BUTTON_DOWN) speed -= 1.5f;     
         
         float vec_x = sin(roll)*speed;
         float vec_y = -cos(roll)*speed;
         
+        
+        int censor = map_plan_a[MOD((int)((position_y+vec_y)/8.0f), MAP_HEIGHT)*MAP_WIDTH+MOD((int)((position_x+vec_x)/8.0f), MAP_WIDTH)];
+        if (censor==0)
+        {
+            vec_x = 0.0f;
+            vec_y = 0.0f;
+        }
+        
         position_x += vec_x;
         position_y += vec_y;
-        
         
         int sp = (int)(roll*ANIM_ANGLES/PI);
         if (sp<0) { SPR_setAttribut(&sprites[0], TILE_ATTR(PAL1, TRUE, FALSE, TRUE)); sp = -sp; }
@@ -218,23 +218,26 @@ int main(u16 hard)
         
         if (speed<0.0f) speed = -speed;
         float smooth = 10.0f/(speed/2.0f+0.5f);
-        camera_position_x = (camera_position_x*smooth+(position_x-screenWidth/2.0f+vec_x*40.0f))/(smooth+1.0f);
-        camera_position_y = (camera_position_y*smooth+(position_y-screenHeight/2.0f+vec_y*40.0f))/(smooth+1.0f);
+        camera_position_x = (camera_position_x*smooth+(position_x+vec_x*20.0f))/(smooth+1.0f);
+        camera_position_y = (camera_position_y*smooth+(position_y+vec_y*20.0f))/(smooth+1.0f);
         int place_x = (int)(camera_position_x/8);
         int place_y = (int)(camera_position_y/8);
                 
-        SPR_setPosition(&sprites[0], position_x-camera_position_x, position_y-camera_position_y);
+        SPR_setPosition(&sprites[0], position_x-camera_position_x-16+screenWidth/2, position_y-camera_position_y-16+screenHeight/2);
         SPR_update(sprites, 1);
         
+        int px = place_x-screenWidth/16-VIEWPORT_BORDER;
+        int py = place_y-screenHeight/16-VIEWPORT_BORDER;
+        
         if (place_x>old_place_x)
-            update(place_x+VIEWPORT_WIDTH-1, place_y, 1, VIEWPORT_HEIGHT);
+            update(px+VIEWPORT_WIDTH-1, py, 1, VIEWPORT_HEIGHT);
         else if (place_x<old_place_x)
-            update(place_x, place_y, 1, VIEWPORT_HEIGHT);
+            update(px, py, 1, VIEWPORT_HEIGHT);
         
         if (place_y>old_place_y)
-            update(place_x, place_y+VIEWPORT_HEIGHT-1, VIEWPORT_WIDTH, 1);
+            update(px, py+VIEWPORT_HEIGHT-1, VIEWPORT_WIDTH, 1);
         else if (place_y<old_place_y)
-            update(place_x, place_y, VIEWPORT_WIDTH, 1);
+            update(px, py, VIEWPORT_WIDTH, 1);
     }
     
     sme_Exit();    
