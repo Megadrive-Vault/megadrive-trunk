@@ -186,6 +186,23 @@ void compile_bitmap(string root_path, string bitmap_path, bool video)
     fclose(bitmap);
 }
 
+void compile_map(string root_path, string map_path)
+{
+    string map_name = map_path.substr(0, map_path.size()-4);
+    printf("compiling map %s...\n", map_name.c_str());
+
+    fprintf(data_file_h, "    extern const int %s[];\n", map_name.c_str());
+    fprintf(data_file_c, "const int %s[] = {", map_name.c_str());
+        
+    std::ifstream input((root_path+map_path).c_str());
+    std::string line;
+    while (std::getline(input, line))
+    {
+        fprintf(data_file_c, "%s,\n", line.c_str());
+    }
+    fprintf(data_file_c, "-1};\n\n");
+}
+
 int main(int argc, char* argv[])
 {
     string root_path = argv[1];
@@ -214,34 +231,48 @@ int main(int argc, char* argv[])
 
     // Video
 
-    fprintf(data_file_h, "extern const int FrameCount;\n");
-    fprintf(data_file_h, "extern const u8* Frames[];\n");    
-    
     handle = FindFirstFile((root_path+"video/*.bmp").c_str(), &find_data);
     if (handle!=INVALID_HANDLE_VALUE)
     {
+        fprintf(data_file_h, "    extern const int FrameCount;\n");
+        fprintf(data_file_h, "    extern const u8* Frames[];\n");    
+    
         do
         {
             if (!(find_data.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY))
                 compile_bitmap(root_path+"video/", find_data.cFileName, true);
         }
         while (FindNextFile(handle, &find_data)!=0);
+   
+        fprintf(data_file_c, "const u8* Frames[] = {\n");
+        for (int i=0 ; i<frames.size() ; ++i)
+        {
+            if (i>0)
+                fprintf(data_file_c, ",\n");    
+
+            if (null_frames[i]) fprintf(data_file_c, "NULL");
+            else fprintf(data_file_c, "%s", frames[i].c_str());
+        }
+        fprintf(data_file_c, "\n};\n");
+        
+        fprintf(data_file_c, "const int FrameCount = %d;\n", frames.size());
+        fclose(data_file_c);
     }
     FindClose(handle);
 
-    fprintf(data_file_c, "const u8* Frames[] = {\n");
-    for (int i=0 ; i<frames.size() ; ++i)
-    {
-        if (i>0)
-            fprintf(data_file_c, ",\n");    
+    // Maps
 
-        if (null_frames[i]) fprintf(data_file_c, "NULL");
-        else fprintf(data_file_c, "%s", frames[i].c_str());
+    handle = FindFirstFile((root_path+"*.csv").c_str(), &find_data);
+    if (handle!=INVALID_HANDLE_VALUE)
+    {
+        do
+        {
+            if (!(find_data.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY))
+                compile_map(root_path, find_data.cFileName);
+        }
+        while (FindNextFile(handle, &find_data)!=0);
     }
-    fprintf(data_file_c, "\n};\n");
-    
-    fprintf(data_file_c, "const int FrameCount = %d;\n", frames.size());
-    fclose(data_file_c);
+    FindClose(handle);
 
     fprintf(data_file_h, "\n#endif\n");
     fclose(data_file_h);

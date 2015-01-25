@@ -1,5 +1,5 @@
 @echo off
-rem ..\compiler\bin\compiler.exe %CD%\data\
+..\compiler\bin\compiler.exe %CD%\data\
 set PROJECT_PATH=%CD:\=/%
 cd ..
 cd sgdk

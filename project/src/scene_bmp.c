@@ -1,11 +1,12 @@
 #include "scene_bmp.h"
-#include "data.h"
+//#include "data.h"
 
 #define WIDTH 42
 #define HEIGHT 94
 
 void SCENE_Bmp()
 {
+/*
     int ys=0;
     u16 w = WIDTH*4;
     u16 h = HEIGHT;
@@ -22,10 +23,6 @@ void SCENE_Bmp()
     {
         if (Frames[i]==NULL)
         {
-            /*VDP_waitVSync();
-            int k;
-            for (k=0 ; k<8 ; ++k)
-                VDP_setPaletteColor(1+k, 0);*/
         }
         else
         {
@@ -38,5 +35,5 @@ void SCENE_Bmp()
         }
         i = (i+1)%FrameCount;
     }
-    while(1);    
+    while(1); */   
 }
