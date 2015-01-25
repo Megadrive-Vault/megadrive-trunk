@@ -10,9 +10,9 @@
 
 #define MOD(a, b)  (a % b + b) % b
 
-int SCREEN_WIDTH;
-int SCREEN_HEIGHT;
-int BORDER;
+int VIEWPORT_WIDTH;
+int VIEWPORT_HEIGHT;
+int VIEWPORT_BORDER;
 int PLAN_WIDTH;
 int PLAN_HEIGHT;
 int MAP_WIDTH;
@@ -67,22 +67,17 @@ void slice(int* ms, int* ps, int* count, int mx, int px, int s, int m_max, int p
     int i;
     *count = breaks_count*2;
     
-    for (i=0 ; i<breaks_count ; ++i)
+    ms[0] = mx;
+    ps[0] = px;
+    ms[1] = breaks[0];
+    ps[1] = breaks[0];
+    
+    for (i=1 ; i<breaks_count ; ++i)
     {
-        if (i==0)
-        {
-            ms[0] = mx;
-            ps[0] = px;
-            ms[1] = breaks[0];
-            ps[1] = breaks[0];
-        }
-        else
-        {
-            ms[i*2] = MOD(mx+breaks[i-1], m_max);
-            ps[i*2] = MOD(px+breaks[i-1], p_max);
-            ms[i*2+1] = breaks[i]-breaks[i-1];
-            ps[i*2+1] = breaks[i]-breaks[i-1];
-        }
+        ms[i*2] = MOD(mx+breaks[i-1], m_max);
+        ps[i*2] = MOD(px+breaks[i-1], p_max);
+        ms[i*2+1] = breaks[i]-breaks[i-1];
+        ps[i*2+1] = breaks[i]-breaks[i-1];
     }
 }
 
@@ -110,16 +105,6 @@ void update(int x, int y, int w, int h)
         for (i=0 ; i<nx ; i+=2)
         {
             int ws = pxs[i+1];
-            /*
-            if (pxs[i]<0 || pxs[i]+ws>PLAN_WIDTH
-                || pys[j]<0 || pys[j]+hs>PLAN_HEIGHT
-                || mxs[i]<0 || mxs[i]+ws>MAP_WIDTH
-                || mys[j]<0 || mys[j]+hs>MAP_HEIGHT
-                || ws<0 || hs<0)
-            {
-                while(1){};
-            }
-            */
             VDP_setMapEx(VDP_PLAN_A, &Plan_a, 0, pxs[i], pys[j], mxs[i], mys[j], ws, hs); 
             VDP_setMapEx(VDP_PLAN_B, &Plan_b, 0, pxs[i], pys[j], mxs[i], mys[j], ws, hs); 
         }
@@ -133,10 +118,10 @@ int main(u16 hard)
     
     //SCENE_Bmp();
     
-    BORDER = 2;
+    VIEWPORT_BORDER = 2;
     
-    SCREEN_WIDTH = screenWidth/8+BORDER*2;
-    SCREEN_HEIGHT = screenHeight/8+BORDER*2;
+    VIEWPORT_WIDTH = screenWidth/8+VIEWPORT_BORDER*2;
+    VIEWPORT_HEIGHT = screenHeight/8+VIEWPORT_BORDER*2;
     PLAN_WIDTH = VDP_getPlanWidth();
     PLAN_HEIGHT = VDP_getPlanHeight();
     MAP_WIDTH = 100;
@@ -166,7 +151,7 @@ int main(u16 hard)
     
     int position_x = 0;
     int position_y = 0;
-    update(position_x/8, position_y/8, SCREEN_WIDTH, SCREEN_HEIGHT);
+    update(position_x/8, position_y/8, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
     
     while (1)
     {
@@ -187,21 +172,21 @@ int main(u16 hard)
         int place_y = position_y/8;
     
         if (place_x>old_place_x)
-            update(place_x+SCREEN_WIDTH-1, place_y, 1, SCREEN_HEIGHT);
+            update(place_x+VIEWPORT_WIDTH-1, place_y, 1, VIEWPORT_HEIGHT);
         else if (place_x<old_place_x)
-            update(place_x, place_y, 1, SCREEN_HEIGHT);
+            update(place_x, place_y, 1, VIEWPORT_HEIGHT);
         
         if (place_y>old_place_y)
-            update(place_x, place_y+SCREEN_HEIGHT-1, SCREEN_WIDTH, 1);
+            update(place_x, place_y+VIEWPORT_HEIGHT-1, VIEWPORT_WIDTH, 1);
         else if (place_y<old_place_y)
-            update(place_x, place_y, SCREEN_WIDTH, 1);
+            update(place_x, place_y, VIEWPORT_WIDTH, 1);
         
         VDP_waitVSync();
         
-        VDP_setHorizontalScroll(PLAN_A, -position_x-BORDER*8);
-        VDP_setHorizontalScroll(PLAN_B, -position_x-BORDER*8);
-        VDP_setVerticalScroll(PLAN_A, position_y+BORDER*8);
-        VDP_setVerticalScroll(PLAN_B, position_y+BORDER*8);        
+        VDP_setHorizontalScroll(PLAN_A, -position_x-VIEWPORT_BORDER*8);
+        VDP_setHorizontalScroll(PLAN_B, -position_x-VIEWPORT_BORDER*8);
+        VDP_setVerticalScroll(PLAN_A, position_y+VIEWPORT_BORDER*8);
+        VDP_setVerticalScroll(PLAN_B, position_y+VIEWPORT_BORDER*8);        
     }
     
     sme_Exit();    
