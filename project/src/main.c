@@ -111,6 +111,17 @@ void update(int x, int y, int w, int h)
     }
 }
 
+float position_x = 0.0f;
+float position_y = 0.0f;
+
+void vblank()
+{
+    VDP_setHorizontalScroll(PLAN_A, -(int)position_x-VIEWPORT_BORDER*8);
+    VDP_setHorizontalScroll(PLAN_B, -(int)position_x-VIEWPORT_BORDER*8);
+    VDP_setVerticalScroll(PLAN_A, (int)position_y+VIEWPORT_BORDER*8);
+    VDP_setVerticalScroll(PLAN_B, (int)position_y+VIEWPORT_BORDER*8);      
+}
+    
 int main(u16 hard)
 {
     sme_Init(hard);
@@ -149,14 +160,14 @@ int main(u16 hard)
     
     VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_PLANE);
     
-    int position_x = 0;
-    int position_y = 0;
-    update(position_x/8, position_y/8, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+    update((int)(position_x/8), (int)(position_y/8), VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+    
+    SYS_setVIntCallback(vblank);
     
     while (1)
     {
-        int old_place_x = position_x/8;
-        int old_place_y = position_y/8;
+        int old_place_x = (int)(position_x/8);
+        int old_place_y = (int)(position_y/8);
     
         u16 value = JOY_readJoypad(0);
         int move_x = 0;
@@ -165,11 +176,11 @@ int main(u16 hard)
         if (value&BUTTON_DOWN) ++move_y;
         if (value&BUTTON_LEFT) --move_x;
         if (value&BUTTON_RIGHT) ++move_x;
-        position_x += move_x*3;
-        position_y += move_y*3;
+        position_x += move_x/2.0f;
+        position_y += move_y/2.0f;
         
-        int place_x = position_x/8;
-        int place_y = position_y/8;
+        int place_x = (int)(position_x/8);
+        int place_y = (int)(position_y/8);
     
         if (place_x>old_place_x)
             update(place_x+VIEWPORT_WIDTH-1, place_y, 1, VIEWPORT_HEIGHT);
@@ -180,13 +191,6 @@ int main(u16 hard)
             update(place_x, place_y+VIEWPORT_HEIGHT-1, VIEWPORT_WIDTH, 1);
         else if (place_y<old_place_y)
             update(place_x, place_y, VIEWPORT_WIDTH, 1);
-        
-        VDP_waitVSync();
-        
-        VDP_setHorizontalScroll(PLAN_A, -position_x-VIEWPORT_BORDER*8);
-        VDP_setHorizontalScroll(PLAN_B, -position_x-VIEWPORT_BORDER*8);
-        VDP_setVerticalScroll(PLAN_A, position_y+VIEWPORT_BORDER*8);
-        VDP_setVerticalScroll(PLAN_B, position_y+VIEWPORT_BORDER*8);        
     }
     
     sme_Exit();    
