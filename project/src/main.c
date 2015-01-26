@@ -160,8 +160,8 @@ int main(u16 hard)
     SPR_initSprite(&sprites[0], &camion, 0, 0, TILE_ATTR(PAL2, TRUE, FALSE, FALSE));
     VDP_setPalette(1, camion.palette->data);
     
-    VDP_setPalette(0, palettepict.palette->data);
-    VDP_loadTileSet(&test_tiles, TILE_USERINDEX, 0);
+    VDP_setPalette(0, map_plan_a_palette);
+    VDP_loadTileSet(&map_plan_a_tiles, TILE_USERINDEX, 0);
     
     Plan_a.compression = 0;
     Plan_a.w = MAP_WIDTH;

@@ -1,6 +1,17 @@
 #include "compiler.h"
 #include "slz/slz.h"
 
+template<class T>
+std::string t_to_string(T i)
+{
+    std::stringstream ss;
+    std::string s;
+    ss << i;
+    s = ss.str();
+
+    return s;
+}
+
 FILE* data_file_h;
 FILE* data_file_c;
 
@@ -186,21 +197,140 @@ void compile_bitmap(string root_path, string bitmap_path, bool video)
     fclose(bitmap);
 }
 
+void compile_tiles(map<int, int>& bindings, string root_path, string tiles_path)
+{
+    string tiles_name = tiles_path.substr(0, tiles_path.size()-6);
+    printf("compiling tiles %s...\n", tiles_name.c_str());
+
+    FILE* bitmap = fopen((root_path+tiles_path).c_str(), "rb");
+    
+    // bitmap header
+    char bitmap_header[2];      fread(bitmap_header, 1, 2, bitmap);
+    unsigned int bitmap_size;   fread(&bitmap_size, 4, 1, bitmap);
+    unsigned int reserved;      fread(&reserved, 4, 1, bitmap);
+    unsigned int bitmap_offset; fread(&bitmap_offset, 4, 1, bitmap);
+    
+    // DIB header
+    unsigned int dib_size;      fread(&dib_size, 4, 1, bitmap);
+    unsigned int bitmap_width;  fread(&bitmap_width, 4, 1, bitmap);
+    unsigned int bitmap_height; fread(&bitmap_height, 4, 1, bitmap);
+    unsigned int reserved2;     fread(&reserved2, 2, 1, bitmap);
+    unsigned short bitmap_bpp;  fread(&bitmap_bpp, 2, 1, bitmap);
+    fread(&reserved2, 4, 1, bitmap);    fread(&reserved2, 4, 1, bitmap);
+    fread(&reserved2, 4, 1, bitmap);    fread(&reserved2, 4, 1, bitmap);
+    unsigned int bitmap_depth;  fread(&bitmap_depth, 4, 1, bitmap);
+    if (bitmap_depth==0) bitmap_depth = 16;
+
+    if (bitmap_depth<3 || bitmap_depth>16 || bitmap_bpp!=4)
+    {
+        printf("!!! INCORRECT DEPTH !!!\n");
+    }
+    else if ((bitmap_width/8)*8!=bitmap_width || (bitmap_height/8)*8!=bitmap_height)
+    {
+        printf("!!! INCORRECT SIZE !!!\n");
+    }
+    else
+    {
+        // palette
+        fseek(bitmap, dib_size+14, SEEK_SET);        
+        fprintf(data_file_h, "    extern const u16 %s_palette[];\n", tiles_name.c_str());
+        fprintf(data_file_c, "const u16 %s_palette[] = {", tiles_name.c_str());    
+        for (int c=0 ; c<bitmap_depth ; ++c)
+        {
+            unsigned char b;
+            fread(&b, 1, 1, bitmap);
+            unsigned char g;
+            fread(&g, 1, 1, bitmap);
+            unsigned char r;
+            fread(&r, 1, 1, bitmap);
+            unsigned char a;
+            fread(&a, 1, 1, bitmap);
+        
+            unsigned short v = ((r*15/255)<<0)+((g*15/255)<<4)+((b*15/255)<<8);
+            fprintf(data_file_c, "%d, ", v);    
+        }
+        fprintf(data_file_c, "0};\n");    
+        
+        int row_size = bitmap_width*bitmap_bpp/8;
+    
+        // tiles data
+        unsigned char* data = (unsigned char*)malloc(bitmap_height*row_size);
+        for (int y=0 ; y<bitmap_height ; ++y)
+        {
+            fseek(bitmap, bitmap_offset+(bitmap_height-y-1)*row_size, SEEK_SET);
+            fread(data+y*row_size, 1, row_size, bitmap);
+        }
+
+        int w = bitmap_width/8;
+        int h = bitmap_height/8;
+        fprintf(data_file_h, "    extern const u8 %s_tiles_data[];\n", tiles_name.c_str());
+        fprintf(data_file_c, "const u8 %s_tiles_data[] = {\n", tiles_name.c_str());    
+        
+        bindings[-1] = 0;
+        int tiles_count = 0;
+        int tiles_address = 0x10;   // TODO: auto process this
+
+        for (int y=0 ; y<h ; ++y)
+        for (int x=0 ; x<w ; ++x)
+        {
+            string tile_str = "    ";
+
+            // Store string values and check if its empty
+            int empty = 1;
+            for (int j=0 ; j<8 ; ++j)
+            for (int i=0 ; i<4 ; ++i)
+            {
+                unsigned char v = *(data+(y*8+j)*row_size+x*4+i);
+                if (v!=0)
+                    empty = 0;
+                tile_str += t_to_string((int)v)+",";
+            }
+
+            if (empty==1)
+            {
+                // Empty, bind to null tile
+                bindings[y*w+x] = 0;
+            }
+            else
+            {
+                // Write it!
+                bindings[y*w+x] = tiles_count+tiles_address;
+                fprintf(data_file_c, "%s\n", tile_str.c_str());
+                ++tiles_count;
+            }            
+        }
+        fprintf(data_file_c, "0};\n");
+        fprintf(data_file_h, "    extern const TileSet %s_tiles;\n", tiles_name.c_str());
+        fprintf(data_file_c, "const TileSet %s_tiles = {0, %d, %s_tiles_data};\n", tiles_name.c_str(), tiles_count, tiles_name.c_str());    
+        free(data);
+    }
+    fclose(bitmap);
+}
+
 void compile_map(string root_path, string map_path)
 {
     string map_name = map_path.substr(0, map_path.size()-4);
     printf("compiling map %s...\n", map_name.c_str());
+
+    map<int, int> bindings;
+    compile_tiles(bindings, root_path, map_name+".tiles");
 
     fprintf(data_file_h, "    extern const u16 %s[];\n", map_name.c_str());
     fprintf(data_file_c, "const u16 %s[] = {", map_name.c_str());
     
     FILE* map = fopen((root_path+map_path).c_str(), "rt");
     int tile_index;
+    unsigned int id = 0; 
     while (feof(map)==0 && fscanf(map, "%d", &tile_index))
     {
-        tile_index = tile_index==-1?0:tile_index+0x10;
-        fprintf(data_file_c, "%d,\n", tile_index);
+        fprintf(data_file_c, "%d,", bindings[tile_index]);
         fgetc(map);
+        ++id;
+        if (id>128)
+        {
+            fprintf(data_file_c, "\n");
+            id = 0;
+        }
     }
     fclose(map);
     fprintf(data_file_c, "0};\n\n");

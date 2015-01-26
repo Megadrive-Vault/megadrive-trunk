@@ -4,6 +4,8 @@ video/
 sme/lib/
 scripts/
 *.vcproj.*.*.user
+*.ncb
+*.suo
 compiler/tmp/
 compiler/bin/
 project/data/

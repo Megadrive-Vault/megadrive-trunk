@@ -5,6 +5,7 @@
 #include "windows.h"
 #include <string>
 #include <vector>
+#include <map>
 #include <algorithm>
 #include <numeric>
 #include <sstream>
