@@ -148,7 +148,7 @@ int main(u16 hard)
     sme_Init(hard);
     SND_startPlay_PCM(music, sizeof(music), SOUND_RATE_16000, SOUND_PAN_CENTER, 1);    
     
-    VIEWPORT_BORDER = 1;
+    VIEWPORT_BORDER = 2;
     VIEWPORT_WIDTH = screenWidth/8+VIEWPORT_BORDER*2;
     VIEWPORT_HEIGHT = screenHeight/8+VIEWPORT_BORDER*2;
     PLAN_WIDTH = VDP_getPlanWidth();
@@ -190,8 +190,8 @@ int main(u16 hard)
         if (roll<-PI) roll += 2.0f*PI;
         if (roll>PI) roll -= 2.0f*PI;
         float speed = 0.0f;
-        if (value&BUTTON_UP) speed += 1.5f;
-        if (value&BUTTON_DOWN) speed -= 1.5f;     
+        if (value&BUTTON_UP) speed += 2.5f;
+        if (value&BUTTON_DOWN) speed -= 2.5f;     
         
         float vec_x = sin(roll)*speed;
         float vec_y = -cos(roll)*speed;
@@ -230,14 +230,14 @@ int main(u16 hard)
         int py = place_y-screenHeight/16-VIEWPORT_BORDER;
         
         if (place_x>old_place_x)
-            update(px+VIEWPORT_WIDTH-1, py, 1, VIEWPORT_HEIGHT);
+            update(px+VIEWPORT_WIDTH-1, py, VIEWPORT_BORDER, VIEWPORT_HEIGHT);
         else if (place_x<old_place_x)
-            update(px, py, 1, VIEWPORT_HEIGHT);
+            update(px, py, VIEWPORT_BORDER, VIEWPORT_HEIGHT);
         
         if (place_y>old_place_y)
-            update(px, py+VIEWPORT_HEIGHT-1, VIEWPORT_WIDTH, 1);
+            update(px, py+VIEWPORT_HEIGHT-1, VIEWPORT_WIDTH, VIEWPORT_BORDER);
         else if (place_y<old_place_y)
-            update(px, py, VIEWPORT_WIDTH, 1);
+            update(px, py, VIEWPORT_WIDTH, VIEWPORT_BORDER);
     }
     
     sme_Exit();    
