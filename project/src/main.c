@@ -109,8 +109,8 @@ void update(int x, int y, int w, int h)
         for (i=0 ; i<nx ; i+=2)
         {
             int ws = pxs[i+1];
-            VDP_setMapEx(VDP_PLAN_A, &Plan_a, 0, pxs[i], pys[j], mxs[i], mys[j], ws, hs); 
-            VDP_setMapEx(VDP_PLAN_B, &Plan_b, 0, pxs[i], pys[j], mxs[i], mys[j], ws, hs); 
+            VDP_setMapEx(VDP_PLAN_A, &Plan_a, TILE_ATTR(0, 0, 0, 0), pxs[i], pys[j], mxs[i], mys[j], ws, hs); 
+            VDP_setMapEx(VDP_PLAN_B, &Plan_b, TILE_ATTR(0, 1, 0, 0), pxs[i], pys[j], mxs[i], mys[j], ws, hs); 
         }
     }
 }
@@ -157,7 +157,7 @@ int main(u16 hard)
     MAP_HEIGHT = 252;
     
     SPR_init(256);
-    SPR_initSprite(&sprites[0], &camion, 0, 0, TILE_ATTR(PAL2, TRUE, FALSE, FALSE));
+    SPR_initSprite(&sprites[0], &camion, 0, 0, TILE_ATTR(PAL2, 0, FALSE, FALSE));
     VDP_setPalette(1, camion.palette->data);
     
     VDP_setPalette(0, map_plan_a_palette);
@@ -197,19 +197,19 @@ int main(u16 hard)
         float vec_y = -cos(roll)*speed;
         
         
-        int censor = map_plan_a[MOD((int)((position_y+vec_y)/8.0f), MAP_HEIGHT)*MAP_WIDTH+MOD((int)((position_x+vec_x)/8.0f), MAP_WIDTH)];
+        /*int censor = map_plan_a[MOD((int)((position_y+vec_y)/8.0f), MAP_HEIGHT)*MAP_WIDTH+MOD((int)((position_x+vec_x)/8.0f), MAP_WIDTH)];
         if (censor==0)
         {
             vec_x = 0.0f;
             vec_y = 0.0f;
-        }
+        }*/
         
         position_x += vec_x;
         position_y += vec_y;
         
         int sp = (int)(roll*ANIM_ANGLES/PI);
-        if (sp<0) { SPR_setAttribut(&sprites[0], TILE_ATTR(PAL1, TRUE, FALSE, TRUE)); sp = -sp; }
-        else SPR_setAttribut(&sprites[0], TILE_ATTR(PAL1, TRUE, FALSE, FALSE));
+        if (sp<0) { SPR_setAttribut(&sprites[0], TILE_ATTR(PAL1, 0, FALSE, TRUE)); sp = -sp; }
+        else SPR_setAttribut(&sprites[0], TILE_ATTR(PAL1, 0, FALSE, FALSE));
         SPR_setAnim(&sprites[0], sp);
         
         
